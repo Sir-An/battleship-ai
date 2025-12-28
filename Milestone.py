@@ -109,7 +109,7 @@ class Board:
         if row not in alph:
             return False
         elif 0 <= alph[row] < self.height and col in range(0, self.width + 1):
-            print("at row, col is:", self.data[alph[row]][col], "row", row, "col", col )
+            #print("at row, col is:", self.data[alph[row]][col], "row", row, "col", col )
             if self.data[alph[row]][col] == "O" or self.data[alph[row]][col] == "X":
                 return False
             else: 
@@ -175,6 +175,16 @@ class Board:
                     return False
             return True
 
+    def isClearWithBuffer(self, r, c):
+        """Checks to see if ship placement means it does not touch nearby ships"""
+        for dr in [-1, 0, 1]:
+            for dc in [-1, 0, 1]:
+                nr, nc = alph[r] + dr, int(c) + dc
+                if 0 <= nr < len(self.data) and 0 <= nc < len(self.data[0]):
+                    if self.data[nr][nc] == "Ship":
+                        return False
+        return True
+
 
 
     def placeShip(self, row, col, HV):      #WORKS   
@@ -186,14 +196,15 @@ class Board:
         
         shipSize = 2  # for now, all ships are 2 units long
 
-        if HV == 'H':
-            for i in range(0, shipSize):
-                self.data[alph[row]][col + i] = "Ship"
-        elif HV == 'V':
-            for i in range(0, shipSize):
-                self.data[alph[row] + i][col] = "Ship"
-        else: 
-            raise ValueError("hv must be 'H' or 'V'") #rewrite this so it asks another time
+        while self.isClearWithBuffer(row, col) == True:
+            if HV == 'H':
+                for i in range(0, shipSize):
+                    self.data[alph[row]][col + i] = "Ship"
+            elif HV == 'V':
+                for i in range(0, shipSize):
+                    self.data[alph[row] + i][col] = "Ship"
+            else: 
+                raise ValueError("hv must be 'H' or 'V'") #rewrite this so it asks another time
         
     def checkWin(self):                  # WORKS 
         """ checks if all ships have sunk by shipsToWin method
@@ -226,32 +237,36 @@ class Board:
 
         
         # random ship set up for AI [5 ships]
-        for i in range(5):
+        
+        aiships_placed = 0
+        while aiships_placed != 5:
             row = random.choice(shipboard)  #line replaced for num dictionary
             col = random.randint(0, 9)
             hv = random.choice(["H", "V"])
 
             if AIboard.canPlaceShip(row, col, hv):
                 AIboard.placeShip(row, col, hv)
+                aiships_placed += 1
             else:
-                i -= 1
+                aiships_placed -= 1
 
 
         #prompts user to set up their board
         
-        for i in range(5):
+        pships_placed = 0
+        while pships_placed != 5:
             userstr = input("place your ships! (Ex: P, 4, H  , rows K-T, cols 0-10, H or V for horizontal or vertical): ").split(', ')
             urow = userstr[0].strip().upper()
             ucol = int(userstr[1].strip())
             uHV = userstr[2].strip().upper()
             if urow not in shipboard:
                 print("Row must be from K–T.")
-                i -= 1
+                pships_placed -= 1
                 continue
 
             if not pboard.canPlaceShip(urow, ucol, uHV):
                 print("Invalid placement, try again.")
-                i += 1
+                pships_placed += 1
                 continue
 
             pboard.placeShip(urow, ucol, uHV)
@@ -288,6 +303,8 @@ class Board:
             # test win:
             if AIboard.checkWin() == True:
                 print("You win!!")
+                print("Opponent Board")
+                print(AIboard)
                 break
 
             # AI Guess:
@@ -319,6 +336,8 @@ class Board:
             # test win:
             if pboard.checkWin() == True:
                 print("AI wins, you lose :(")
+                print("Opponent Board")
+                print(AIboard)
                 break
 
 
@@ -337,31 +356,32 @@ class Board:
 
         
         # random ship set up for AI [5 ships] ai board
-        for i in range(5):
+        aiships_placed = 0
+        while aiships_placed != 5:
             row = random.choice(shipboard)  #line replaced for num dictionary
             col = random.randint(0, 9)
             hv = random.choice(["H", "V"])
 
             if AIboard.canPlaceShip(row, col, hv):
                 AIboard.placeShip(row, col, hv)
+                aiships_placed += 1
             else:
-                i -= 1
+                aiships_placed += 0
 
-        for i in range(5): #pboard but AI
+        pships_placed = 0
+        while pships_placed != 5: #pboard but AI
             row = random.choice(shipboard)  #line replaced for num dictionary
             col = random.randint(0, 9)
             hv = random.choice(["H", "V"])
 
             if pboard.canPlaceShip(row, col, hv):
                 pboard.placeShip(row, col, hv)
+                pships_placed += 1
             else:
-                i -= 1
+                pships_placed -= 1
 
-        
-        print("pboard")
+    
         print(pboard)
-        print("AI board")
-        print(AIboard)
         print()
         print("<--------------------------- ship setup done --------------------------->" )
         print()
@@ -395,11 +415,13 @@ class Board:
             if AIboard.shipSunk(row, col):
                 print("You sunk a ship!")
                 print("you have", AIboard.shipsToWin(), "ships left to sink.")
-                print("hitqueue from test sink:", self.hitQueue)
+                #print("hitqueue from test sink:", self.hitQueue)
 
             # test win:
             if AIboard.checkWin() == True:
                 print("You win!!")
+                print("Opponent Board")
+                print(AIboard)
                 break
 
             # AI Guess:
@@ -423,10 +445,12 @@ class Board:
 
             
             
+            print()
+            print()
             print("board (AI1)___________________________________________________________________________________________")
+            print()
             print(pboard)
-            print("AIboard (AI2)_____________________________________")
-            print(AIboard)
+            
 
             # test sink:
             if pboard.shipSunk(row, col):
@@ -436,6 +460,8 @@ class Board:
             # test win:
             if pboard.checkWin() == True:
                 print("AIboard wins, you lose :(")
+                print("Opponent Board")
+                print(AIboard)
                 break
 
             input("hit return to continue [end of hostGame2]")
@@ -500,13 +526,13 @@ class Board:
             return self.aiTarget()
         
         else: 
-            print(" in AI Move self.hitQueue: ", self.hitQueue)
+            #print(" in AI Move self.hitQueue: ", self.hitQueue)
             aigr = random.choice(shipboard) #shipboard = lower letter rows
             aigc = random.choice(range(0, self.width + 1))
             if self.allowsGuess(aigr, aigc) == True:
         # until it hits a ship
                 if self.checkHit(aigr, aigc) == True:
-                    print("[in AIMOVE] hit at", aigr, ", ", aigc)
+                    #print("[in AIMOVE] hit at", aigr, ", ", aigc)
                     self.hitQueue.append((aigr, aigc))
                 return aigr, aigc
             else:
@@ -551,12 +577,14 @@ class Board:
         
         
         if self.checkHit(row, col) == True:
-            print("[in AI TARGET]hit at", row, col)
+            #print("[in AI TARGET]hit at", row, col)
             if self.shipSunk(row, col) == True:
                 self.hitQueue.clear()
+            return row, col
         else: 
-            print("[in AI TARGET]miss at", row, col)
-        return row, col
+            #print("[in AI TARGET]miss at", row, col)
+            
+            return row, col
 
 
 
